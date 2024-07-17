@@ -446,6 +446,7 @@ class SequenceRecurrent(Sequence):
         super(SequenceRecurrent, self).__init__(seq_path, representation_type, mode, delta_t_ms, transforms=transforms,
                                                 name_idx=name_idx, visualize=visualize, load_gt=load_gt)
         self.crop_size = self.transforms['randomcrop'] if 'randomcrop' in self.transforms else None
+        self.gaussian_filter = self.transforms['gaussian_filter'] if 'gaussian_filter' in self.transforms else False
         self.sequence_length = sequence_length
         self.valid_indices = self.get_continuous_sequences()
 
@@ -523,6 +524,17 @@ class SequenceRecurrent(Sequence):
                         elif isinstance(value, list) or isinstance(value, tuple):
                             sample[key] = [tf.functional.crop(
                                 v, i, j, h, w) for v in value]
+        
+        # gaussian filter
+        if self.gaussian_filter:
+            for sample in sequence:
+                for key, value in sample.items():
+                    if key in keys_to_crop:
+                        if isinstance(value, torch.Tensor):
+                            sample[key] = tf.functional.gaussian_blur(value, kernel_size=3)
+                        elif isinstance(value, list) or isinstance(value, tuple):
+                            sample[key] = [tf.functional.gaussian_blur(v, kernel_size=3) for v in value]
+
         return sequence
 
 
